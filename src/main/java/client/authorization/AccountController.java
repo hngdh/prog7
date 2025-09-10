@@ -14,21 +14,22 @@ import java.io.BufferedReader;
 import java.io.Console;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Optional;
 
 public class AccountController {
-  private Account account = null;
+  private Optional<Account> account = Optional.empty();
 
   public AccountController() {}
 
   public boolean isSignIn() {
-    return account != null;
+    return account.isPresent();
   }
 
   public void signOut() {
-    account = null;
+    account = Optional.empty();
   }
 
-  public Account getAccount() {
+  public Optional<Account> getAccount() {
     return account;
   }
 
@@ -36,15 +37,13 @@ public class AccountController {
     if (!isSignIn()) {
       String user = getUser("Please enter your username: ");
       String password = getPasswordSignIn();
-      //            String user = "hos";
-      //            String password = "h@S314";
       password = MD2Hashing.MD2(password);
       Request request = new Request("sign_in", null, new Account(user, password));
       Response response = clientNetwork.respond(request);
       renderer.printResponse(response);
       if (response.getResult() != null && !response.getResult().isEmpty()) {
         if (response.getResult().get(0).equals("||signed_in//")) {
-          account = new Account(user, password);
+          account = Optional.of(new Account(user, password));
         }
       }
     } else Printer.printCondition("You are already signed in");
@@ -60,7 +59,7 @@ public class AccountController {
       renderer.printResponse(response);
       if (response.getResult() != null && !response.getResult().isEmpty()) {
         if (response.getResult().get(0).equals("||signed_up//")) {
-          account = new Account(user, password);
+          account = Optional.of(new Account(user, password));
         }
       }
     } else Printer.printCondition("You are already signed in");

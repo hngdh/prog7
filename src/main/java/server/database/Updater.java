@@ -9,8 +9,6 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Updater {
   private final String updateFlat =
@@ -19,16 +17,12 @@ public class Updater {
       "UPDATE houses SET name = ?, year = ?, lifts = ? WHERE flat_id = ?";
   private final String updateCoordinate =
       "UPDATE coordinates SET coordinate_x = ?, coordinate_y = ? WHERE  flat_id = ?";
-  private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-  private final Lock writeLock = readWriteLock.writeLock();
   private final Remover remover = new Remover();
-  private final Inserter inserter = new Inserter();
 
   public Updater() {}
 
   public void updateFlat(Flat flat, Connection connection)
       throws SQLException, InsertFailedException {
-    writeLock.lock();
     try (PreparedStatement preparedStatement = connection.prepareStatement(updateFlat)) {
       preparedStatement.setString(1, flat.getName());
       preparedStatement.setDate(2, Date.valueOf(flat.getCreationDate()));
@@ -42,7 +36,6 @@ public class Updater {
       updateHouse(flat, connection);
       updateCoordinate(flat, connection);
     }
-    writeLock.unlock();
   }
 
   private void updateHouse(Flat flat, Connection connection)

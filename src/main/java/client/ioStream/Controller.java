@@ -99,10 +99,11 @@ public class Controller {
     switch (type) {
       case INPUT_NEEDED ->
           modeManager.call(
-              renderer, clientNetwork, command, argument, accountController.getAccount());
+              renderer, clientNetwork, command, argument, accountController.getAccount().get());
       case NO_INPUT_NEEDED -> {
         Response response =
-            clientNetwork.respond(new Request(command, argument, accountController.getAccount()));
+            clientNetwork.respond(
+                new Request(command, argument, accountController.getAccount().get()));
         renderer.printResponse(response);
       }
     }
@@ -116,7 +117,7 @@ public class Controller {
 
   public void signOut() {
     Response response =
-        clientNetwork.respond(new Request("sign_out", null, accountController.getAccount()));
+        clientNetwork.respond(new Request("sign_out", null, accountController.getAccount().get()));
     renderer.printResponse(response);
     accountController.signOut();
   }

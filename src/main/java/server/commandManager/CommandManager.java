@@ -37,7 +37,6 @@ public class CommandManager {
 
     registerCommandServer(new ClearAdmin());
     registerCommandServer(new Exit());
-    registerCommandServer(new Reload());
 
     commandCollection.putAll(commandClient);
     commandCollection.putAll(commandServer);

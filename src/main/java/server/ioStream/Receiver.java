@@ -87,18 +87,6 @@ public class Receiver {
     return response;
   }
 
-  public Response reload() {
-    Response response = new Response();
-    try {
-      collectionManager.clear();
-      collectionManager.loadData();
-      response.addResult("Collection reloaded");
-    } catch (LogException e) {
-      LogUtil.logServerError(e);
-    }
-    return response;
-  }
-
   public Response ping() {
     Response response = new Response();
     response.addResult("//pinged||");

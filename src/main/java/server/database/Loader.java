@@ -11,19 +11,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedList;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Loader {
   private final String loadFlats =
       "SELECT flats.*, houses.*, coordinates.* FROM (flats LEFT JOIN houses on flats.id = houses.flat_id) LEFT JOIN coordinates on flats.id = coordinates.flat_id ORDER BY id";
-  private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-  private final Lock readLock = readWriteLock.readLock();
 
   public Loader() {}
 
   public LinkedList<Flat> loadFlats(Connection connection) throws LogException {
-    readLock.lock();
     LinkedList<Flat> collection = new LinkedList<>();
     try (PreparedStatement preparedStatement = connection.prepareStatement(loadFlats)) {
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
@@ -64,7 +59,6 @@ public class Loader {
       LogUtil.logServerError(e);
       throw new LogException("Unable to load flats");
     }
-    readLock.unlock();
     return collection;
   }
 }

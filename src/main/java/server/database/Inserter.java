@@ -5,7 +5,6 @@ import common.objects.Coordinate;
 import common.objects.Flat;
 import common.objects.House;
 import java.sql.*;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Inserter {
@@ -16,13 +15,11 @@ public class Inserter {
   private final String insertCoordinate =
       "INSERT INTO coordinates(flat_id, coordinate_x, coordinate_y) values (?, ?, ?)";
   private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-  private final Lock writeLock = readWriteLock.writeLock();
 
   public Inserter() {}
 
   public void insertFlat(Flat flat, Connection connection)
       throws SQLException, InsertFailedException {
-    writeLock.lock();
     try (PreparedStatement preparedStatement =
         connection.prepareStatement(insertFlat, Statement.RETURN_GENERATED_KEYS)) {
       preparedStatement.setString(1, flat.getName());
@@ -45,14 +42,12 @@ public class Inserter {
       insertHouse(flat, connection);
       insertCoordinate(flat, connection);
     }
-    writeLock.unlock();
   }
 
   private void insertHouse(Flat flat, Connection connection)
       throws SQLException, InsertFailedException {
     House house = flat.getHouse();
     if (house == null) return;
-    writeLock.lock();
     try (PreparedStatement preparedStatement = connection.prepareStatement(insertHouse)) {
       preparedStatement.setInt(1, flat.getId());
       preparedStatement.setString(2, house.getName());
@@ -60,19 +55,16 @@ public class Inserter {
       preparedStatement.setString(4, house.getNumberOfLifts());
       if (preparedStatement.executeUpdate() <= 0) throw new InsertFailedException("house");
     }
-    writeLock.unlock();
   }
 
   private void insertCoordinate(Flat flat, Connection connection)
       throws SQLException, InsertFailedException {
     Coordinate coordinate = flat.getCoordinate();
-    writeLock.lock();
     try (PreparedStatement preparedStatement = connection.prepareStatement(insertCoordinate)) {
       preparedStatement.setInt(1, flat.getId());
       preparedStatement.setString(2, coordinate.getX());
       preparedStatement.setString(3, coordinate.getY());
       if (preparedStatement.executeUpdate() <= 0) throw new InsertFailedException("coordinate");
     }
-    writeLock.unlock();
   }
 }

@@ -69,6 +69,25 @@ public class DatabaseManager {
     }
   }
 
+  public void clear() throws LogException, RemoveFailedException {
+    Connection connection = null;
+    try {
+      connection = connectionManager.getConnection();
+      connection.setAutoCommit(false);
+      remover.clear(connection);
+      connection.commit();
+    } catch (RemoveFailedException e) {
+      connectionManager.rollback(connection);
+      throw e;
+    } catch (SQLException e) {
+      connectionManager.rollback(connection);
+      throw new LogException("Clear failed");
+    } finally {
+      if (connection != null) connectionManager.autoCommit(connection);
+      connectionManager.closeConnection(connection);
+    }
+  }
+
   public void removeById(int id) throws LogException, RemoveFailedException {
     Connection connection = null;
     try {

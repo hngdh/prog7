@@ -9,7 +9,6 @@ import common.packets.Request;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -21,7 +20,6 @@ public class CollectionManager {
   private final LinkedList<Flat> collection = new LinkedList<>();
   private final DatabaseManager databaseManager;
   private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-  private final Lock writeLock = readWriteLock.writeLock();
 
   public CollectionManager(DatabaseManager databaseManager) {
     this.databaseManager = databaseManager;
@@ -34,35 +32,46 @@ public class CollectionManager {
   public void clearByCreator(Request request) {
     try {
       String creator = request.getAccount().getUser();
+      readWriteLock.writeLock().lock();
       databaseManager.clearByCreator(creator);
-      writeLock.lock();
       Iterator<Flat> iterator = collection.iterator();
       iterator.forEachRemaining(
           flat -> {
             if (flat.getCreator().equals(creator)) iterator.remove();
           });
-      writeLock.unlock();
-    } catch (LogException e) {
+    } catch (LogException | RemoveFailedException e) {
       Printer.printError(e);
-    } catch (RemoveFailedException e) {
-      Printer.printError(e);
+    } finally {
+      readWriteLock.writeLock().unlock();
     }
   }
 
   public void sort() {
+    readWriteLock.writeLock().lock();
     collection.sort(Comparator.comparing(Flat::getName));
+    readWriteLock.writeLock().unlock();
   }
 
   public void min_by_coordinates() {
+    readWriteLock.writeLock().lock();
     collection.sort(
         Comparator.comparing(
             a ->
                 Float.parseFloat(a.getCoordinate().getX())
                     + Float.parseFloat(a.getCoordinate().getY())));
+    readWriteLock.writeLock().unlock();
   }
 
   public void clear() {
-    collection.clear();
+    try {
+      readWriteLock.writeLock().lock();
+      databaseManager.clear();
+      collection.clear();
+    } catch (LogException | RemoveFailedException e) {
+      Printer.printError(e);
+    } finally {
+      readWriteLock.writeLock().unlock();
+    }
   }
 
   public void add(Request request) {
@@ -70,27 +79,27 @@ public class CollectionManager {
     try {
       flat.setId(collection.size() + 1);
       flat.setCreator(request.getAccount().getUser());
+      readWriteLock.writeLock().lock();
       databaseManager.insertFlat(flat);
-      writeLock.lock();
       collection.add(flat);
-      writeLock.unlock();
-    } catch (LogException e) {
+
+    } catch (LogException | InsertFailedException e) {
       Printer.printError(e);
-    } catch (InsertFailedException e) {
-      Printer.printError(e);
+    } finally {
+      readWriteLock.writeLock().unlock();
     }
   }
 
   public void remove_by_id(int id, int collectionID) {
     try {
+      readWriteLock.writeLock().lock();
       databaseManager.removeById(id);
-      writeLock.lock();
       collection.remove(collectionID);
-      writeLock.unlock();
-    } catch (LogException e) {
-      throw new RuntimeException(e);
-    } catch (RemoveFailedException e) {
-      throw new RuntimeException(e);
+
+    } catch (LogException | RemoveFailedException e) {
+      Printer.printError(e);
+    } finally {
+      readWriteLock.writeLock().unlock();
     }
   }
 
@@ -107,14 +116,14 @@ public class CollectionManager {
         }
       }
       if (id < 0) throw new RemoveFailedException("No flat found for " + creator);
+      readWriteLock.writeLock().lock();
       databaseManager.removeById(id);
-      writeLock.lock();
       collection.removeFirst();
-      writeLock.unlock();
-    } catch (RemoveFailedException e) {
-      throw new RuntimeException(e);
-    } catch (LogException e) {
-      throw new RuntimeException(e);
+
+    } catch (RemoveFailedException | LogException e) {
+      Printer.printError(e);
+    } finally {
+      readWriteLock.writeLock().unlock();
     }
   }
 
@@ -128,14 +137,14 @@ public class CollectionManager {
               && flat.getCreator().equals(creator)) {
             int id = flat.getId();
             try {
+              readWriteLock.writeLock().lock();
               databaseManager.removeById(id);
-              writeLock.lock();
               collection.remove(flat);
-              writeLock.unlock();
-            } catch (LogException e) {
-              throw new RuntimeException(e);
-            } catch (RemoveFailedException e) {
-              throw new RuntimeException(e);
+
+            } catch (LogException | RemoveFailedException e) {
+              Printer.printError(e);
+            } finally {
+              readWriteLock.writeLock().unlock();
             }
           }
           ;
@@ -144,21 +153,23 @@ public class CollectionManager {
 
   public void update(Flat flat, int collectionID) {
     try {
+      readWriteLock.writeLock().lock();
       databaseManager.update(flat);
-      writeLock.lock();
       collection.remove(collectionID);
       collection.add(collectionID, flat);
-      writeLock.unlock();
-    } catch (InsertFailedException e) {
-      throw new RuntimeException(e);
-    } catch (LogException e) {
-      throw new RuntimeException(e);
+
+    } catch (InsertFailedException | LogException e) {
+      Printer.printError(e);
+    } finally {
+      readWriteLock.writeLock().unlock();
     }
   }
 
   public void loadData() throws LogException {
+    readWriteLock.writeLock().lock();
     LinkedList<Flat> result = databaseManager.loadFlats();
     collection.addAll(result);
+    readWriteLock.writeLock().unlock();
     Printer.printResult("Loaded " + collection.size() + " flat(s) from file");
   }
 }
