@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 
@@ -38,16 +39,16 @@ public class Sender implements Callable<Response> {
 
   @Override
   public Response call() {
-    Response response = null;
+    Optional<Response> response = Optional.empty();
     try {
-      response = responseQueue.take();
-      sendResponse(response);
+      response = Optional.of(responseQueue.take());
+      sendResponse(response.get());
     } catch (LogException e) {
       Printer.printError(e.getMessage());
     } catch (InterruptedException e) {
       LogUtil.logServerError(e);
       Printer.printError("Logged error occurred");
     }
-    return response;
+    return response.get();
   }
 }

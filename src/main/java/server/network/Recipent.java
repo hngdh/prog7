@@ -10,6 +10,7 @@ import java.io.ObjectInputStream;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 
@@ -49,16 +50,16 @@ public class Recipent implements Callable<Request> {
 
   @Override
   public Request call() {
-    Request request = null;
+    Optional<Request> request = Optional.empty();
     try {
-      request = readRequest();
-      requestQueue.put(request);
+      request = Optional.ofNullable(readRequest());
+      requestQueue.put(request.get());
     } catch (LogException e) {
       Printer.printError(e);
     } catch (InterruptedException e) {
       LogUtil.logServerError(e);
       Printer.printError("Logged error occurred");
     }
-    return request;
+    return request.get();
   }
 }

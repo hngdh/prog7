@@ -7,6 +7,7 @@ import common.io.LogUtil;
 import common.io.Printer;
 import common.packets.Request;
 import common.packets.Response;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import server.commandManager.CommandManager;
@@ -75,15 +76,15 @@ public class Processor implements Callable<Response> {
 
   @Override
   public Response call() {
-    Response result = null;
+    Optional<Response> result = Optional.empty();
     try {
       Request request = requestQueue.take();
-      result = processClient(request);
-      responseQueue.put(result);
+      result = Optional.ofNullable(processClient(request));
+      responseQueue.put(result.get());
     } catch (InterruptedException | LogException e) {
       LogUtil.logServerError(e);
       Printer.printError("Logged error occurred");
     }
-    return result;
+    return result.get();
   }
 }
